@@ -16,6 +16,8 @@ So, many spam messages are blocked, but legitimate messages are just delayed a f
 
 Grayland tries hard not to delay legitimate messages.
 
+ - It doesn't greylist messages from hosts whose reverse-DNS name looks like a mail server.
+
  - It uses whitelists of legitimate email servers, and doesn't greylist messages from the servers on these lists.
    (The list at dnswl.org is especially helpful. If your mail server isn't on the list, sign up; it's free.)
 

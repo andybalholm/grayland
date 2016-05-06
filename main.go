@@ -73,6 +73,11 @@ var DNSWhitelists = []string{
 	"iadb.isipp.com",
 }
 
+var mailServerPrefixes = []string{
+	"mail",
+	"smtp",
+}
+
 func (g *grayMilter) Connect(hostname string, network string, address string, macros map[string]string) milter.Response {
 	switch network {
 	case "tcp4", "tcp6":
@@ -87,6 +92,13 @@ func (g *grayMilter) Connect(hostname string, network string, address string, ma
 			return milter.Accept
 		}
 		g.IP = host
+
+		for _, p := range mailServerPrefixes {
+			if strings.HasPrefix(hostname, p) {
+				Log("Hostname looks like a mail server", "hostname", hostname, "ip", host)
+				return milter.Accept
+			}
+		}
 
 		if AlreadyPassed(host) {
 			Log("Already passed greylist", "hostname", hostname, "ip", host)
