@@ -76,6 +76,7 @@ var DNSWhitelists = []string{
 var mailServerPrefixes = []string{
 	"mail",
 	"smtp",
+	"mta",
 }
 
 func (g *grayMilter) Connect(hostname string, network string, address string, macros map[string]string) milter.Response {
@@ -94,7 +95,7 @@ func (g *grayMilter) Connect(hostname string, network string, address string, ma
 		g.IP = host
 
 		for _, p := range mailServerPrefixes {
-			if strings.HasPrefix(hostname, p) {
+			if strings.Contains(hostname, p) {
 				Log("Hostname looks like a mail server", "hostname", hostname, "ip", host)
 				return milter.Accept
 			}
