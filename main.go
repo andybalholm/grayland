@@ -3,10 +3,12 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"net"
 	"net/textproto"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/andybalholm/milter"
 )
@@ -61,6 +63,7 @@ type grayMilter struct {
 	Hostname string
 	IP       string
 	Sender   string
+	Delay    time.Duration
 }
 
 var DNSWhitelists = []string{
@@ -157,7 +160,8 @@ func (g *grayMilter) To(recipient string, macros map[string]string) milter.Respo
 	passed, delay := CheckGreylist(g.IP, g.Sender, recipient)
 	if passed {
 		Log("Passed greylist", "hostname", g.Hostname, "ip", g.IP, "from", g.Sender, "to", recipient, "delay", delay)
-		return milter.Accept
+		g.Delay = delay
+		return milter.Continue
 	}
 
 	Log("Greylisted", "hostname", g.Hostname, "ip", g.IP, "from", g.Sender, "to", recipient)
@@ -169,5 +173,8 @@ func (g *grayMilter) Headers(h textproto.MIMEHeader) milter.Response {
 }
 
 func (g *grayMilter) Body(body []byte, m milter.Modifier) milter.Response {
+	if g.Delay != 0 {
+		m.AddHeader("X-Greylist", fmt.Sprintf("delayed %v by Grayland", g.Delay))
+	}
 	return milter.Continue
 }
