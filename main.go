@@ -169,6 +169,11 @@ func (g *grayMilter) To(recipient string, macros map[string]string) milter.Respo
 }
 
 func (g *grayMilter) Headers(h textproto.MIMEHeader) milter.Response {
+	// If the message has already passed through SpamAssassin and been marked OK,
+	// log the fact that we delayed a ham message.
+	if strings.HasPrefix(h.Get("X-Spam-Status"), "No") && g.Delay != 0 {
+		Log("Delayed good message", "hostname", g.Hostname, "ip", g.IP, "from", g.Sender, "to", h.Get("To"), "delay", g.Delay, "subject", h.Get("Subject"))
+	}
 	return milter.Continue
 }
 
