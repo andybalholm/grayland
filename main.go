@@ -77,6 +77,7 @@ var mailServerPrefixes = []string{
 	"mail",
 	"smtp",
 	"mta",
+	"mx",
 }
 
 func (g *grayMilter) Connect(hostname string, network string, address string, macros map[string]string) milter.Response {
