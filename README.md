@@ -23,6 +23,9 @@ Grayland tries hard not to delay legitimate messages.
 
  - It supports local whitelists as well, with either domain names or IP addresses.
 
+ - If the sender's domain looks legitimate (not so long that it looks like a throwaway domain),
+   and the sending IP address matches that domain's A or MX record, the message is not greylisted.
+
  - It does not have a minimum delay. If the sender retries after one second, the message goes through.
 
 ## How Do You Run Grayland?
