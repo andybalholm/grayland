@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	whitelistFile = flag.String("whitelist", "", "file of whitelisted domains and IPs")
-	whitelist     = map[string]bool{}
+	whitelistFile   = flag.String("whitelist", "", "file of whitelisted domains, IPs, and CIDR ranges")
+	whitelist       = map[string]bool{}
+	whitelistRanges []*net.IPNet
 )
 
 func main() {
@@ -54,6 +55,10 @@ func loadWhitelist(filename string) error {
 		}
 		line = strings.TrimSpace(line)
 		if line != "" {
+			if _, n, err := net.ParseCIDR(line); err == nil {
+				whitelistRanges = append(whitelistRanges, n)
+				continue
+			}
 			whitelist[line] = true
 		}
 	}
@@ -125,6 +130,14 @@ func (g *grayMilter) Connect(hostname string, network string, address string, ma
 				break
 			}
 			domain = domain[dot+1:]
+		}
+
+		parsedIP := net.ParseIP(host)
+		for _, n := range whitelistRanges {
+			if n.Contains(parsedIP) {
+				Log("Whitelisted IP range", "hostname", hostname, "ip", host, "range", n)
+				return milter.Accept
+			}
 		}
 
 		if network == "tcp6" {
