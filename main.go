@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/andybalholm/milter"
-	"golang.org/x/net/publicsuffix"
 )
 
 var (
@@ -182,42 +181,14 @@ func (g *grayMilter) From(sender string, macros map[string]string) milter.Respon
 		return milter.Accept
 	}
 
-	// Figure out if the sender's domain sounds legitimate. Legitimate emails
-	// usually come from domains with only one label before the public suffix.
-	// (e.g. @gmail.com, not @l.to2van.com)
-	// We want to do our checks against the MX and A records only for
-	// legitimate domains. (If the spammer is spoofing a legitimate domain,
-	// those checks will fail.)
-	at := strings.Index(sender, "@")
-	if at == -1 {
-		// Sender address doesn't even have a domain.
-		return milter.Continue
-	}
-	fromDomain := strings.ToLower(sender[at+1:])
-	suffix, _ := publicsuffix.PublicSuffix(fromDomain)
-	prefix := strings.TrimSuffix(fromDomain, suffix)
-	prefix = strings.TrimSuffix(prefix, ".")
-	if strings.Contains(prefix, ".") {
-		return milter.Continue
+	var fromDomain string
+	if at := strings.Index(sender, "@"); at != -1 {
+		fromDomain = strings.ToLower(sender[at+1:])
 	}
 
-	addrs, _ := net.LookupHost(fromDomain)
-	for _, ip := range addrs {
-		if ip == g.IP {
-			Log("IP matches A record", "hostname", g.Hostname, "ip", g.IP, "from", sender, "domain", fromDomain)
-			return milter.Accept
-		}
-	}
-
-	mxs, _ := net.LookupMX(fromDomain)
-	for _, mx := range mxs {
-		addrs, _ := net.LookupHost(mx.Host)
-		for _, ip := range addrs {
-			if ip == g.IP {
-				Log("IP matches MX record", "hostname", g.Hostname, "ip", g.IP, "from", sender, "domain", fromDomain, "mx", mx.Host)
-				return milter.Accept
-			}
-		}
+	if fromDomain != "" && SPFValidated(g.IP, fromDomain, 5) {
+		Log("SPF pass", "hostname", g.Hostname, "ip", g.IP, "from", sender, "domain", fromDomain)
+		return milter.Accept
 	}
 
 	return milter.Continue
