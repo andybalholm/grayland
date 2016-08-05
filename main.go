@@ -186,7 +186,8 @@ func (g *grayMilter) From(sender string, macros map[string]string) milter.Respon
 		fromDomain = strings.ToLower(sender[at+1:])
 	}
 
-	if fromDomain != "" && SPFValidated(g.IP, fromDomain, 5) {
+	// If the sender has valid reverse DNS and passes SPF, don't greylist.
+	if fromDomain != "" && !strings.HasPrefix(g.Hostname, "[") && SPFValidated(g.IP, fromDomain, 5) {
 		Log("SPF pass", "hostname", g.Hostname, "ip", g.IP, "from", sender, "domain", fromDomain)
 		return milter.Accept
 	}
