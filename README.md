@@ -29,7 +29,9 @@ Grayland tries hard not to delay legitimate messages.
 
 ## How Do You Run Grayland?
 
-Grayland expects to be started by inetd, in "wait" mode. 
+### Inetd Mode
+
+Grayland can be started by inetd, in "wait" mode. 
 On my mail server, I have Grayland installed as /usr/local/bin/grayland,
 and I have the following line in /etc/inetd.conf:
 
@@ -41,4 +43,10 @@ The following line in Postfix's main.cf tells Postfix to use Grayland:
 
 If you already have an `smtpd_milters` line in main.cf, just add Grayland's entry to the start of the list.
 
-Reload inetd and Postfix, and Grayland should be working. 
+Reload inetd and Postfix, and Grayland should be working.
+
+### Stand-alone Mode
+
+Grayland can also run without inetd, and listen on its own TCP socket. Specify the address to listen on with the -listen option:
+
+    grayland -listen localhost:10001

@@ -17,6 +17,8 @@ var (
 	whitelistFile   = flag.String("whitelist", "", "file of whitelisted domains, IPs, and CIDR ranges")
 	whitelist       = map[string]bool{}
 	whitelistRanges []*net.IPNet
+
+	listenAddr = flag.String("listen", "", "address to listen on (instead of using inetd)")
 )
 
 func main() {
@@ -28,9 +30,21 @@ func main() {
 		}
 	}
 
-	listener, err := net.FileListener(os.Stdin)
-	if err != nil {
-		Fatal("Could not get listener socked from inetd (This program should be started from inetd with the 'wait' option.)", "error", err)
+	var listener net.Listener
+	var err error
+
+	if *listenAddr == "" {
+		// inetd mode
+		listener, err = net.FileListener(os.Stdin)
+		if err != nil {
+			Fatal("Could not get listener socked from inetd (run this program from inetd or use the --listen option)", "error", err)
+		}
+	} else {
+		// listening mode
+		listener, err = net.Listen("tcp", *listenAddr)
+		if err != nil {
+			Fatal("Could not open listening socket", "address", *listenAddr, "error", err)
+		}
 	}
 
 	err = milter.Serve(listener, func() milter.Milter { return &grayMilter{} })
