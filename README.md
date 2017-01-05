@@ -23,9 +23,10 @@ Grayland tries hard not to delay legitimate messages.
 
  - It supports local whitelists as well, with either domain names or IP addresses.
 
- - If the sender has an SPF result of Pass, the message is not greylisted.
+ - If the sender has an SPF result of Pass (and there is a valid reverse DNS name), the message is not greylisted.
 
- - It does not have a minimum delay. If the sender retries after one second, the message goes through.
+ - It does not have a minimum delay (by default; one can be configured with the -delay switch).
+   If the sender retries after one second, the message goes through.
 
 ## How Do You Run Grayland?
 

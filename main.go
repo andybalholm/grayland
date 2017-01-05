@@ -210,15 +210,19 @@ func (g *grayMilter) From(sender string, macros map[string]string) milter.Respon
 }
 
 func (g *grayMilter) To(recipient string, macros map[string]string) milter.Response {
-	passed, delay := CheckGreylist(g.IP, g.Sender, recipient)
-	if passed {
-		Log("Passed greylist", "hostname", g.Hostname, "ip", g.IP, "from", g.Sender, "to", recipient, "delay", delay)
-		g.Delay = delay
-		return milter.Continue
+	action, delay := CheckGreylist(g.IP, g.Sender, recipient)
+	switch action {
+	case newTriplet:
+		Log("Greylisted", "hostname", g.Hostname, "ip", g.IP, "from", g.Sender, "to", recipient)
+		return milter.CustomResponse{450, "4.2.0 Greylisted"}
+	case tooSoon:
+		Log("Retried too soon", "hostname", g.Hostname, "ip", g.IP, "from", g.Sender, "to", recipient, "delay", delay)
+		return milter.CustomResponse{450, "4.2.0 Greylisted"}
 	}
 
-	Log("Greylisted", "hostname", g.Hostname, "ip", g.IP, "from", g.Sender, "to", recipient)
-	return milter.CustomResponse{450, "4.2.0 Greylisted"}
+	Log("Passed greylist", "hostname", g.Hostname, "ip", g.IP, "from", g.Sender, "to", recipient, "delay", delay)
+	g.Delay = delay
+	return milter.Continue
 }
 
 func (g *grayMilter) Headers(h textproto.MIMEHeader) milter.Response {

@@ -1,9 +1,12 @@
 package main
 
 import (
+	"flag"
 	"sync"
 	"time"
 )
+
+var minDelay = flag.Duration("delay", 0, "minimum time before a retry is accepted")
 
 // A triplet is a combination of client IP, sender, and recipient.
 type triplet struct {
@@ -20,10 +23,18 @@ var (
 	greylistLock sync.RWMutex
 )
 
+type greylistAction int
+
+const (
+	newTriplet greylistAction = iota
+	tooSoon
+	passed
+)
+
 // CheckGreylist checks and updates the greylist. If the combination of
 // ip, from, and to was seen before (and recently enough), it returns true and
 // the amount of time the message was delayed. If not, it returns false.
-func CheckGreylist(ip, from, to string) (passed bool, delay time.Duration) {
+func CheckGreylist(ip, from, to string) (action greylistAction, delay time.Duration) {
 	greylistLock.Lock()
 	defer greylistLock.Unlock()
 
@@ -32,14 +43,17 @@ func CheckGreylist(ip, from, to string) (passed bool, delay time.Duration) {
 
 	if oldTime, ok := greylist[t]; ok {
 		delay = now.Sub(oldTime)
+		if delay < *minDelay {
+			return tooSoon, delay
+		}
 		if delay < 24*time.Hour {
 			ipPassed[ip] = true
-			return true, delay
+			return passed, delay
 		}
 	}
 
 	greylist[t] = now
-	return false, 0
+	return newTriplet, 0
 }
 
 // AlreadyPassed returns whether ip has already passed greylisting.
